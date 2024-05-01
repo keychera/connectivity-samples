@@ -16,14 +16,18 @@
 
 package com.example.android.bluetoothchat;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+
+import androidx.core.app.ActivityCompat;
 
 import com.example.android.common.logger.Log;
 
@@ -55,6 +59,7 @@ public class BluetoothChatService {
     // Member fields
     private final BluetoothAdapter mAdapter;
     private final Handler mHandler;
+    private final Context mContext;
     private AcceptThread mSecureAcceptThread;
     private AcceptThread mInsecureAcceptThread;
     private ConnectThread mConnectThread;
@@ -78,6 +83,7 @@ public class BluetoothChatService {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         mNewState = mState;
+        mContext = context;
         mHandler = handler;
     }
 
@@ -201,6 +207,9 @@ public class BluetoothChatService {
         // Send the name of the connected device back to the UI Activity
         Message msg = mHandler.obtainMessage(Constants.MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         bundle.putString(Constants.DEVICE_NAME, device.getName());
         msg.setData(bundle);
         mHandler.sendMessage(msg);
@@ -309,6 +318,10 @@ public class BluetoothChatService {
             mSocketType = secure ? "Secure" : "Insecure";
 
             // Create a new listening server socket
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                mmServerSocket = null;
+                return;
+            }
             try {
                 if (secure) {
                     tmp = mAdapter.listenUsingRfcommWithServiceRecord(NAME_SECURE,
@@ -397,6 +410,10 @@ public class BluetoothChatService {
 
             // Get a BluetoothSocket for a connection with the
             // given BluetoothDevice
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                mmSocket = null;
+                return;
+            }
             try {
                 if (secure) {
                     tmp = device.createRfcommSocketToServiceRecord(
@@ -417,6 +434,9 @@ public class BluetoothChatService {
             setName("ConnectThread" + mSocketType);
 
             // Always cancel discovery because it will slow down a connection
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
             mAdapter.cancelDiscovery();
 
             // Make a connection to the BluetoothSocket

@@ -16,6 +16,7 @@
 
 package com.example.android.bluetoothchat;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -23,6 +24,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
@@ -31,6 +33,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import androidx.core.app.ActivityCompat;
 
 import com.example.android.common.logger.Log;
 
@@ -112,6 +116,9 @@ public class DeviceListActivity extends Activity {
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
 
         // Get a set of currently paired devices
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         Set<BluetoothDevice> pairedDevices = mBtAdapter.getBondedDevices();
 
         // If there are paired devices, add each one to the ArrayAdapter
@@ -130,6 +137,9 @@ public class DeviceListActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
 
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         // Make sure we're not doing discovery anymore
         if (mBtAdapter != null) {
             mBtAdapter.cancelDiscovery();
@@ -152,6 +162,9 @@ public class DeviceListActivity extends Activity {
         // Turn on sub-title for new devices
         findViewById(R.id.title_new_devices).setVisibility(View.VISIBLE);
 
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         // If we're already discovering, stop it
         if (mBtAdapter.isDiscovering()) {
             mBtAdapter.cancelDiscovery();
@@ -168,6 +181,9 @@ public class DeviceListActivity extends Activity {
             = new AdapterView.OnItemClickListener() {
         public void onItemClick(AdapterView<?> av, View v, int arg2, long arg3) {
             // Cancel discovery because it's costly and we're about to connect
+            if (ActivityCompat.checkSelfPermission(thisActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+               return;
+            }
             mBtAdapter.cancelDiscovery();
 
             // Get the device MAC address, which is the last 17 chars in the View
@@ -188,11 +204,14 @@ public class DeviceListActivity extends Activity {
      * The BroadcastReceiver that listens for discovered devices and changes the title when
      * discovery is finished
      */
+    private final Activity thisActivity = this;
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-
+            if (ActivityCompat.checkSelfPermission(thisActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
             // When discovery finds a device
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 // Get the BluetoothDevice object from the Intent
